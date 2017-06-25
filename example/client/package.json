@@ -1,0 +1,18 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node client.js"
+  },
+  "author": "imcooder@gmail.com",
+  "license": "ISC",
+  "dependencies": {    
+    "fs": "0.0.1-security",
+    "jsonschema": "^1.1.1",
+    "path": "^0.12.7",
+    "underscore": "^1.8.3"
+  }
+}

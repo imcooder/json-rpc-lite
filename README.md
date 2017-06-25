@@ -1,5 +1,5 @@
-# json-access
-access json with path(split by '/')
+# json-rpc-lite
+very simple jsonrpc base on express
 
 [![NPM version][npm-image]][npm-url]
 [![npm download][download-image]][download-url]
@@ -20,59 +20,104 @@ npm i json-rpc-lite -S
 
 ## Usage
 
-```js
 
-const jsonRPC = require('json-rpc-lite');
-let a = {
-    level1: 'name',
-    level2: 100,
-    level3: [
-        1,
-        2,
-        3,
-        4,
-        5,
-    ],
-    level4: [{
-        name: 'sub',
-    }],
-    'level5': {
-        name: 'test',
-        objs: [{
-            name: 'sub'
-        }]
+### server
+#### 加载处理模块
+const JSONRPC = require('json-rpc-lite');
+
+JSONRPC.loadRouter(path.join(__dirname, 'rpc/'));
+// 自动加载目录中 xxx_rpc.js文件 xxx为模块名
+文件中 函数名为yyyRpc，其中yyy为导出的模块方法，非此格式函数 无法rpc调用
+example：connector_rpc.js
+```js
+var service = module.exports = {
+    init: function () {
+        logger.debug('[connector_prc]init');
+    },
+    kickRpc: function (input, cb) {
+        logger.debug('[rpc]kick:%j', input);
+        let checkParam = validate(input, jsonSchemaData.kick_rpc);
+        if (!checkParam.valid) {
+            let errMsg = checkParam.errors[0].message;
+            cb(new Error(errMsg));
+            return;
+        }
+        cb(null, {});        
+        return;
+    }
+}
+```
+input: argument
+cb: callback(error, returnValue)
+
+### route
+baseon express
+```js
+var inputSchema = {
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string"
+        },
+        "module": {
+            "type": "string"
+        },
+        "method": {
+            "type": "string"
+        },
+        "args": {
+            "type": "object",
+        }
+    },
+    "required": ["id", "module", "method", "args"]
+};
+var service = module.exports = {
+    invokeAction: {
+        method: ['POST'],
+        handler: function (req, res) {
+            logger.debug('[rpc]invoke:%j', req.body);
+            var checkParam = validate(req.body, inputSchema);
+            if (!checkParam.valid) {
+                let errMsg = checkParam.errors[0].message;
+                logger.error('[rpc]invoke param error:%s', errMsg);
+                res.json(commonUtil.json(-1, errMsg));
+                return;
+            }
+            try {
+                JSONRPC.handlePOST(req, res);
+            } catch (error) {
+                logger.error('[rpc]call fatal:', error);
+                res.json({
+                    status: -1,
+                    msg: 'fatal error'
+                });
+            }
+            return;
+        }
     }
 };
-
-
-console.log('level1:', jsonSelect.getEx(a, 'level1'));
-console.log('level3/[2]:', jsonSelect.getEx(a, 'level3/[2]'));
-console.log('level4/sub:', jsonSelect.getEx(a, 'level4/sub'));
-console.log('level4/[0]/name:', jsonSelect.getEx(a, 'level4/[0]/name'));
-console.log('level4/sub/[0]/name:', jsonSelect.getEx(a, 'level4/sub/[0]/name'));
-console.log('level5/objs/[0]:', jsonSelect.getEx(a, 'level5/objs/[0]'));
-console.log('level5/objs/[0]/name:', jsonSelect.getEx(a, 'level5/objs/[0]/name'));
-
-console.log('delete level1:', jsonSelect.deleteEx(a, 'level1'));
-console.log('delete level3/[2]:', jsonSelect.deleteEx(a, 'level3/[2]'));
-console.log('delete level5/objs/[0]/name:', jsonSelect.deleteEx(a, 'level5/objs/[0]/name'));
 ```
-### function desc:
-|name|desc|
-|-|
-|get| throw error when path not exist or bad format|
-|getEx(input, path, def)|return def when error|
-|delete| return this, throw error when bad format|
-|deleteEx| return this|
 
-### path desc：
-path item split by '/'
-exp:
-level3/[2] 
-level3: json map
-[2]: json array index 2
 
-## Example
+### client
+```js
+jsonrpcClientPool.invokeWithHost(commonUtil.makeRpcUrl(connectorHost), 'connector', 'kick', {
+                header: {
+                    uid: uid,
+                    logid: logid
+                },
+                body: {
+                    uids: [uid],
+                    reason: 'multi_login'
+                }
+            }).then(function(resp) {
+                logger.debug('logid:%s [rpc]kick remote success:%j', logid, resp);
+                return Promise.resolve();
+            }).catch(function(error) {
+                logger.error('logid:%s [rpc]kick remote failed:', logid, error.stack);
+                return Promise.resolve();
+            });
+```
 
 See [example](example/).
 

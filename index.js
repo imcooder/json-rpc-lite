@@ -1,5 +1,5 @@
 /**
- * @author xuejuntao@baidu.com
+ * @author imcooder@gmail.com
  */
 /*jshint esversion: 6 */
 /* jshint node:true */
