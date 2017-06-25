@@ -10,6 +10,8 @@ const path = require('path');
 const _ = require('underscore');
 const uuid = require('node-uuid');
 const request = require('request');
+const RAL = require('yog-ral').RAL;
+const ralP = require('yog-ral').RALPromise;
 const validate = require('jsonschema').validate;
 const logger = require('log4js').getLogger('connect', __filename);
 var ERROR = {
@@ -139,6 +141,44 @@ var JSONRPC = {
                 logger.debug('[rpc]using:%d', now() - start);
                 return;
             });
+        });
+    },
+    invokeWithRal: function(serverName, module, method, params) {        
+        let requestJSON = {
+            'id': uuid.v4(),
+            'module': module,
+            'method': method,
+            'args': params
+        };
+        logger.debug('[rpc]request:%j', requestJSON);
+        let start = now();
+        return  ralP(serverName, {
+            data: requestJSON,
+        }).then(function(data) {
+            logger.debug('[rpc]response:%j', data);
+            var jsonObject = data;
+            if (!_.has(jsonObject, 'status')) {
+                logger.error('need status');
+                logger.debug('[rpc]using:%d', now() - start);
+                return Promise.reject(new Error('need status'));
+            }
+            if (jsonObject.status !== 0) {
+                let errMsg = jsonObject.msg || '';
+                logger.error('status:%d not zero msg:%s', jsonObject.status, errMsg);
+                logger.debug('[rpc]using:%d', now() - start);
+                return Promise.reject(new Error(errMsg));
+            }
+            logger.debug('[rpc]using:%d', now() - start);
+            return jsonObject.data;
+        }).catch(function(error) {
+            logger.error('error:', error);
+            if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKETTIMEDOUT') {
+                logger.error('[rpc] timeout opt:%j', options);
+                return Promise.reject(new Error('timeout'));
+            }
+            logger.error('[rpc]callback failed opt:[%s] body[%j]', requestJSON);
+            logger.debug('[rpc]using:%d', now() - start);
+            return Promise.reject(error);
         });
     },
     loadRouter: function(root) {
