@@ -28,6 +28,7 @@ const JSONRPC = require('json-rpc-lite');
 JSONRPC.loadRouter(path.join(__dirname, 'rpc/'));
 // 自动加载目录中 xxx_rpc.js文件 xxx为模块名
 文件中 函数名为yyyRpc，其中yyy为导出的模块方法，非此格式函数 无法rpc调用
+
 example：connector_rpc.js
 ```js
 var service = module.exports = {
@@ -101,15 +102,8 @@ var service = module.exports = {
 
 ### client
 ```js
-jsonrpcClientPool.invokeWithHost(commonUtil.makeRpcUrl(connectorHost), 'connector', 'kick', {
-                header: {
-                    uid: uid,
-                    logid: logid
-                },
-                body: {
-                    uids: [uid],
-                    reason: 'multi_login'
-                }
+jsonrpcClientPool.invokeWithHost('http://127.0.0.1:8011/api/rpc/invoke', 'connector', 'kick', {
+                echo: 'hello'
             }).then(function(resp) {
                 logger.debug('logid:%s [rpc]kick remote success:%j', logid, resp);
                 return Promise.resolve();
