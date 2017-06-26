@@ -246,6 +246,10 @@ var JSONRPC = {
                 applyMethod(methodName.replace(/Rpc$/, ''), methodName, methodBody);
             });
         });
+    },
+    initRal: function(opt) {
+        logger.debug('initRal:%j', opt);
+        RAL.init(opt);
     }
 };
 
