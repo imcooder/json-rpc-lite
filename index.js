@@ -1,7 +1,7 @@
 /**
  * @author imcooder@gmail.com
  */
-/*jshint esversion: 6 */
+/* jshint esversion: 6 */
 /* jshint node:true */
 "use strict";
 const glob = require('glob');
@@ -94,90 +94,103 @@ var JSONRPC = {
         }
         return;
     },
-    invokeWithHost: function(url, module, method, args) {
+    invokeWithHost: function(url, module, method, args, logid) {
         let requestJSON = {
             'id': uuid.v4(),
             'module': module,
             'method': method,
             'args': args
         };
+        if (!logid) {
+            logid = '';
+        }
         var timeout = 5000;
         var options = {
             url: url,
             timeout: timeout,
+            saiyalogid: logid,
         };
         options.json = requestJSON;
         let start = now();
         return new Promise(function(resolve, reject) {
-            logger.debug('[rpc]invoke:%j', options);
+            logger.debug('logid:%s [rpc]invoke:%j', logid, options);
             request.post(options, function (err, httpResponse, data) {
-                logger.debug('[rpc]invoke return:%j', data);
+                logger.debug('logid:%s [rpc]invoke return:%j', logid, data);
                 if (err) {
                     if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
-                        logger.error('[rpc] timeout opt:%j', options);
+                        logger.error('logid:%s [rpc] timeout opt:%j', logid, options);
                         reject(new Error('timeout'));
                         return;
                     }
-                    logger.error('[rpc]invoke callback failed opt:[%s] body[%j]', options, data);
+                    logger.error('logid:%s [rpc]invoke callback failed opt:[%s] body[%j]',
+                                 logid, options, data);
                     reject(err);
-                    logger.debug('[rpc]using:%d', now() - start);
+                    logger.debug('logid:%s [rpc]using:%d', logid, now() - start);
                     return;
                 }
                 var jsonObject = data;
                 if (!_.has(jsonObject, 'status')) {
-                    logger.error('[rpc]invoke need status');
+                    logger.error('logid:%s [rpc]invoke need status', logid);
                     reject(new Error('need status'));
-                    logger.debug('[rpc]using:%d', now() - start);
+                    logger.debug('logid:%s [rpc]using:%d', logid, now() - start);
                     return;
                 }
                 if (jsonObject.status !== 0) {
                     let errMsg = jsonObject.msg || '';
-                    logger.error('[rpc]invoke status:%d not zero msg:%s', jsonObject.status, errMsg);
+                    logger.error('logid:%s [rpc]invoke status:%d not zero msg:%s',
+                                 logid, jsonObject.status, errMsg);
                     reject(new Error(errMsg));
-                    logger.debug('[rpc]using:%d', now() - start);
+                    logger.debug('logid:%s [rpc]using:%d', logid, now() - start);
                     return;
                 }
                 resolve(jsonObject.data);
-                logger.debug('[rpc]using:%d', now() - start);
+                logger.debug('logid:5s [rpc]using:%d', logid, now() - start);
                 return;
             });
         });
     },
-    invokeWithRal: function(serverName, module, method, params) {        
+    invokeWithRal: function(serverName, module, method, params, logid) {        
         let requestJSON = {
             'id': uuid.v4(),
             'module': module,
             'method': method,
             'args': params
         };
-        logger.debug('[rpc]request:%j', requestJSON);
+        if (!logid) {
+            logid = "";
+        }
+        logger.debug('logid:%s [rpc]request:%j', logid, requestJSON);
         let start = now();
         return  ralP(serverName, {
             data: requestJSON,
+            headers: {
+                saiyalogid: logid,
+            }
         }).then(function(data) {
-            logger.debug('[rpc]response:%j', data);
+            logger.debug('logid:%s [rpc]response:%j', logid, data);
             var jsonObject = data;
             if (!_.has(jsonObject, 'status')) {
-                logger.error('need status');
-                logger.debug('[rpc]using:%d', now() - start);
+                logger.error('logid:%s need status', logid);
+                logger.debug('logid:%s [rpc]using:%d', logid, now() - start);
                 return Promise.reject(new Error('need status'));
             }
             if (jsonObject.status !== 0) {
                 let errMsg = jsonObject.msg || '';
-                logger.error('status:%d not zero msg:%s', jsonObject.status, errMsg);
-                logger.debug('[rpc]using:%d', now() - start);
+                logger.error('logid:%s status:%d not zero msg:%s', logid, jsonObject.status, errMsg);
+                logger.debug('logid:%s [rpc]using:%d', logid, now() - start);
                 return Promise.reject(new Error(errMsg));
             }
-            logger.debug('[rpc]using:%d', now() - start);
+            logger.debug('logid:%s [rpc]using:%d', logid, now() - start);
             return jsonObject.data;
         }).catch(function(error) {
-            logger.error('error:', error);
+            logger.error('logid:%s error:%s', logid, error.stack);
             if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKETTIMEDOUT') {
-                logger.error('[rpc] timeout opt:%j', options);
+                logger.error('logid:%s [rpc] timeout %s.%s', logid, module, method);
                 return Promise.reject(new Error('timeout'));
             }
-            logger.error('[rpc]callback failed opt:[%s] body[%j]', requestJSON);
-            logger.debug('[rpc]using:%d', now() - start);
+            logger.error('logid:%s [rpc]callback failed %s.%s body[%j]',
+                         logid, module, method, requestJSON);
+            logger.debug('logid:%s [rpc]using:%d', logid, now() - start);
             return Promise.reject(error);
         });
     },
