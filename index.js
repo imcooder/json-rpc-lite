@@ -54,15 +54,16 @@ var functions = {};
 var JSONRPC = {
     functions: functions,
     handlePOST: function(req, res) {
+        let logid = req.get('saiyalogid') || 'undefined';
         var buffer = '';
         var body = req.body;
         let id = body.id;
         let module = body.module.toLowerCase();
-        let method = body.method.toLowerCase();    
+        let method = body.method.toLowerCase();
         let args = body.args;
         if (!_.has(JSONRPC.functions, module)) {
             res.json(json(ERROR.unknown_module, 'unknown module'));
-            logger.warn('[rpc]handlePost unknown module:', module);
+            logger.warn('logid:%s [rpc]handlePost unknown module:', logid, module);
             return;
         }
         if (!_.has(JSONRPC.functions[module], method)) {
@@ -72,15 +73,18 @@ var JSONRPC = {
         }
         let handler = JSONRPC.functions[module][method];
         if (typeof handler !== 'function') {
-            logger.warn('[rpc]handlePost bad function');
+            logger.warn('logid:%s [rpc]handlePost bad function', logid);
             res.json(json(ERROR.invalid_method, 'bad function'));
             return;
         }
-        logger.debug('[rpc]handlePost:request (id %s): %s.%s(%j)', id, module, method, args);
+        logger.debug('logid:%s [rpc]handlePost:request (id %s): %s.%s(%j)',
+                     logid, id, module, method, args);
         try {
-            handler.call(null, args, function(error, response) {
+            handler.call(null, args, {
+                logid: logid,
+            }, function(error, response) {
                 if (error) {
-                    logger.error('[rpc]handlePost error:', error.stack);
+                    logger.error('logid:%s [rpc]handlePost error:', logid, error.stack);
                     res.json(json(ERROR.failed, error.message || 'error'));
                     return;
                 }
@@ -88,7 +92,7 @@ var JSONRPC = {
                 return;
             });
         } catch(error) {
-            logger.error('[rpc]handler fatel:%s', error.stack);
+            logger.error('logid:%s [rpc]handler fatel:%s', logid, error.stack);
             res.json(json(ERROR.failed, error.message || 'error'));
             return;
         }
@@ -149,7 +153,7 @@ var JSONRPC = {
             });
         });
     },
-    invokeWithRal: function(serverName, module, method, params, logid) {        
+    invokeWithRal: function(serverName, module, method, params, logid) {
         let requestJSON = {
             'id': uuid.v4(),
             'module': module,
