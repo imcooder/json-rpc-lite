@@ -54,7 +54,7 @@ var functions = {};
 var JSONRPC = {
     functions: functions,
     handlePOST: function(req, res) {
-        let logid = req.get('saiyalogid') || 'undefined';
+        let logid = req.get('saiyalogid') || '';
         var buffer = '';
         var body = req.body;
         let id = body.id;
@@ -112,7 +112,9 @@ var JSONRPC = {
         var options = {
             url: url,
             timeout: timeout,
-            saiyalogid: logid,
+            headers: {
+                saiyalogid: logid,
+            },
         };
         options.json = requestJSON;
         let start = now();
