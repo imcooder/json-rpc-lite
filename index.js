@@ -150,7 +150,7 @@ var JSONRPC = {
                     return;
                 }
                 resolve(jsonObject.data);
-                logger.debug('logid:5s [rpc]using:%d', logid, now() - start);
+                logger.debug('logid:%s [rpc]using:%d', logid, now() - start);
                 return;
             });
         });
