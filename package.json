@@ -1,6 +1,6 @@
 {
   "name": "json-rpc-lite",
-  "version": "1.0.15",
+  "version": "2.0.1",
   "private": false,
   "description": "json-rpc-lite",
   "main": "index.js",
