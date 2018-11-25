@@ -76,8 +76,6 @@ var JSONRPC = {
             res.json(json(ERROR.invalid_method, 'bad function'));
             return;
         }
-        console.log('logid:%s [rpc]handlePost:request (id %s): %s.%s(%j)',
-                     logid, id, module, method, args);
         try {
             handler.call(null, args, {
                 logid: logid,
@@ -116,11 +114,8 @@ var JSONRPC = {
             },
         };
         options.json = requestJSON;
-        let start = now();
         return new Promise(function(resolve, reject) {
-            console.log('logid:%s [rpc]invoke:%j', logid, options);
             request.post(options, function (err, httpResponse, data) {
-                console.log('logid:%s [rpc]invoke return:%j', logid, data);
                 if (err) {
                     if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
                         console.warn('logid:%s [rpc] timeout opt:%j', logid, options);
@@ -130,14 +125,12 @@ var JSONRPC = {
                     console.warn('logid:%s [rpc]invoke callback failed opt:[%s] body[%j]',
                                  logid, options, data);
                     reject(err);
-                    console.log('logid:%s [rpc]using:%d', logid, now() - start);
                     return;
                 }
                 var jsonObject = data;
                 if (!_.has(jsonObject, 'status')) {
                     console.warn('logid:%s [rpc]invoke need status', logid);
                     reject(new Error('need status'));
-                    console.log('logid:%s [rpc]using:%d', logid, now() - start);
                     return;
                 }
                 if (jsonObject.status !== 0) {
@@ -145,11 +138,9 @@ var JSONRPC = {
                     console.warn('logid:%s [rpc]invoke status:%d not zero msg:%s',
                                  logid, jsonObject.status, errMsg);
                     reject(new Error(errMsg));
-                    console.log('logid:%s [rpc]using:%d', logid, now() - start);
                     return;
                 }
                 resolve(jsonObject.data);
-                console.log('logid:%s [rpc]using:%d', logid, now() - start);
                 return;
             });
         });
@@ -167,28 +158,22 @@ var JSONRPC = {
         if (!logid) {
             logid = "";
         }
-        console.log('logid:%s [rpc]request:%j', logid, requestJSON);
-        let start = now();
         return  this.RALPromise(serverName, {
             data: requestJSON,
             headers: {
                 saiyalogid: logid,
             }
         }).then(function(data) {
-            console.log('logid:%s [rpc]response:%j', logid, data);
             var jsonObject = data;
             if (!_.has(jsonObject, 'status')) {
                 console.warn('logid:%s need status', logid);
-                console.log('logid:%s [rpc]using:%d', logid, now() - start);
                 return Promise.reject(new Error('need status'));
             }
             if (jsonObject.status !== 0) {
                 let errMsg = jsonObject.msg || '';
                 console.warn('logid:%s status:%d not zero msg:%s', logid, jsonObject.status, errMsg);
-                console.log('logid:%s [rpc]using:%d', logid, now() - start);
                 return Promise.reject(new Error(errMsg));
             }
-            console.log('logid:%s [rpc]using:%d', logid, now() - start);
             return jsonObject.data;
         }).catch(function(error) {
             console.warn('logid:%s error:%s', logid, error.stack);
@@ -196,16 +181,11 @@ var JSONRPC = {
                 console.warn('logid:%s [rpc] timeout %s.%s', logid, module, method);
                 return Promise.reject(new Error('timeout'));
             }
-            console.log('logid:%s [rpc]callback failed %s.%s body[%j]',
-                         logid, module, method, requestJSON);
-            console.log('logid:%s [rpc]using:%d', logid, now() - start);
             return Promise.reject(error);
         });
     },
     loadRouter: function(root) {
-        console.log('route:%s', root);
         glob.sync(`${root}/**/*_rpc.js`).forEach(function(file) {
-            console.log('file:%s', file);
             const realRoot = os.platform() === 'win32' ? root.replace(/\\/ig, '/') : root;
             const filePath = file.replace(/\.[^.]*$/, '');
             const fileName = path.basename(filePath).replace(/\.[^.]*$/, '');
@@ -213,7 +193,6 @@ var JSONRPC = {
             console.log('filePath:%s module:%s', filePath, module);
             const controller = require(filePath);
             const methods = Object.keys(controller);
-            console.log('methods:%j', methods);
             function applyMethod(name, methodName, methodBody) {
                 console.log('name:%s methodName:%s', name, methodName);
                 let body = methodBody;
@@ -238,12 +217,10 @@ var JSONRPC = {
                     JSONRPC.functions[module] = {};
                 }
                 JSONRPC.functions[module.toLowerCase()][name.toLowerCase()] = handler;
-                console.log(JSONRPC.functions);
             }
             methods.forEach((method) => {
                 const methodName = method;
                 if (!methodName.match(/Rpc$/g)) {
-                    console.log('method %s not api', methodName);
                     return;
                 }
                 const methodBody = controller[method];
