@@ -4,6 +4,7 @@
 /* jshint esversion: 6 */
 /* jshint node:true */
 "use strict";
+
 const glob = require('glob');
 const os = require('os');
 const path = require('path');
@@ -80,7 +81,7 @@ var JSONRPC = {
         try {
             handler.call(null, args, {
                 logid: logid,
-            }, function(error, response) {
+            }, (error, response) => {
                 if (error) {
                     console.warn('logid:%s [rpc]handlePost error:', logid, error.stack);
                     res.json(json(ERROR.failed, error.message || 'error'));
@@ -88,7 +89,7 @@ var JSONRPC = {
                 }
                 res.json(json(ERROR.ok, '', response));
                 return;
-            });
+            }, req, res);
         } catch(error) {
             console.warn('logid:%s [rpc]handler fatel:%s', logid, error.stack);
             res.json(json(ERROR.failed, error.message || 'error'));
