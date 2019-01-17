@@ -184,6 +184,50 @@ var JSONRPC = {
             return Promise.reject(error);
         });
     },
+    invokeWithRalV2: function(serverName, opt, module, method, params, logid) {
+        if (!this.RALPromise) {
+            return Promise.reject(new Error('RALPromise is empty'));
+        }
+        let requestJSON = {
+            'id': uuid.v4(),
+            'module': module,
+            'method': method,
+            'args': params
+        };
+        if (!logid) {
+            logid = "";
+        }
+        let tmpConf = _.pick(opt, ['debug_server', 'timeout']);
+        let conf = {
+            data: requestJSON,
+            headers: {
+                saiyalogid: logid,
+            }
+        };
+        if (tmpConf) {
+            conf = _.extend(conf, tmpConf);
+        }
+        return  this.RALPromise(serverName, conf).then(function(data) {
+            var jsonObject = data;
+            if (!_.has(jsonObject, 'status')) {
+                console.warn('logid:%s need status', logid);
+                return Promise.reject(new Error('need status'));
+            }
+            if (jsonObject.status !== 0) {
+                let errMsg = jsonObject.msg || '';
+                console.warn('logid:%s status:%d not zero msg:%s', logid, jsonObject.status, errMsg);
+                return Promise.reject(new Error(errMsg));
+            }
+            return jsonObject.data;
+        }).catch(function(error) {
+            console.warn('logid:%s error:%s', logid, error.stack);
+            if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKETTIMEDOUT') {
+                console.warn('logid:%s [rpc] timeout %s.%s', logid, module, method);
+                return Promise.reject(new Error('timeout'));
+            }
+            return Promise.reject(error);
+        });
+    },
     loadRouter: function(root) {
         glob.sync(`${root}/**/*_rpc.js`).forEach(function(file) {
             const realRoot = os.platform() === 'win32' ? root.replace(/\\/ig, '/') : root;

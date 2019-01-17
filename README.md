@@ -113,6 +113,20 @@ jsonrpcClientPool.invokeWithHost('http://127.0.0.1:8011/api/rpc/invoke', 'connec
             });
 ```
 
+### 增加debug_server 只能目标地址 以渠道invokeWithHost
+```js
+JsonRpc.invokeWithRalV2('dlpProxyRpcMock', {
+                debug_server: {
+                    'host': host.ip,
+                    port: host.port
+                }
+            },
+            'connector',
+            'ping',
+            postBody,
+            this.tracer.logid
+        )
+```
 See [example](example/).
 
 ## License
