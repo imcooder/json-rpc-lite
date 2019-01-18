@@ -151,7 +151,8 @@ var JSONRPC = {
             data: requestJSON,
             headers: {
                 saiyalogid: logid,
-            }
+            },
+            requestID: logid
         }).then(function(data) {
             var jsonObject = data;
             if (!_.has(jsonObject, 'status')) {
@@ -187,7 +188,8 @@ var JSONRPC = {
             data: requestJSON,
             headers: {
                 saiyalogid: logid,
-            }
+            },
+            requestID: logid
         };
         if (tmpConf) {
             conf = _.extend(conf, tmpConf);
